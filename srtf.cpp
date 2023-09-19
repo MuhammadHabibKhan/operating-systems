@@ -74,17 +74,17 @@ class Scheduler {
     }
 
     void printProcess (vector <Process> list) {
-        cout << "------------------------------------------------------------------------------------------------------------------------------" << endl;
-        cout << "PID" << "\tArrival Time" << "\tBurst Time" << "\tRemaining Burst " << "\tStart Time" << "\tWait Time" << "\tTurn Around Time" << "\tEnd Time" << endl;
+        cout << "------------------------------------------------------------------------------------------------------------" << endl;
+        cout << "PID" << "\tArrival Time" << "\tBurst Time" << "\tStart Time" << "\tWait Time" << "\tTurn Around Time" << "\tEnd Time" << endl;
 
-        cout << "------------------------------------------------------------------------------------------------------------------------------" << endl;
+        cout << "------------------------------------------------------------------------------------------------------------" << endl;
         int i = 0;
         for (Process p : list) {
-            cout << p.pid << "\t" << p.arrivalTime << "\t\t" << p.burstTime << "\t\t\t" << p.remainingBurstTime << "\t\t" << p.startTime << "\t\t" << p.waitTime << "\t\t" << p.turnAroundTime << "\t\t\t" << p.endTime << endl;
+            cout << p.pid << "\t" << p.arrivalTime << "\t\t" << p.burstTime << "\t\t" << p.startTime << "\t\t" << p.waitTime << "\t\t" << p.turnAroundTime << "\t\t\t" << p.endTime << endl;
             i++;
         }
         cout << endl;
-        cout << "------------------------------------------------------------------------------------------------------------------------------" << endl;
+        cout << "------------------------------------------------------------------------------------------------------------" << endl;
     }
 
     void executeSRTF () {
@@ -119,6 +119,7 @@ class Scheduler {
                 vector <Process>::iterator i = readyQueue.begin();
                 Process tempJob = readyQueue[0];
 
+                // cout << "PID | Clock" << endl;
                 for (auto r = readyQueue.begin(); r != readyQueue.end(); r++) {
 
                     Process process = *r;
@@ -133,18 +134,29 @@ class Scheduler {
 
                 if (shortestJob.remainingBurstTime == 0) {
                     // cout << "sjob pid (srt): " << shortestJob.pid << endl;
+                    cout << endl;
+                    cout << "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------" << endl;
+                    cout << "PID: " << shortestJob.pid << " finished at time " << clock << endl;
+                    cout << "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------" << endl;
                     completedProcess.push_back(shortestJob);
                     readyQueue.erase(i);
                     clock++;
                     continue;
                 }
+
                 else {
                     int index = i - readyQueue.begin();
                     shortestJob.remainingBurstTime -= 1;
                     readyQueue[index] = shortestJob;
+                    // cout << "--------------" << endl;
+                    cout << "| PID: " << shortestJob.pid << " | Clock: " << clock << " |" << endl;
+                    // cout << "--------------" << endl;
+                    // cout << "| " << shortestJob.pid << " | "<< '\n';
+                    // cout << clock;
                     clock++;
                     continue;
                 }
+                // cout << endl;
             }
             
             clock++;
@@ -172,15 +184,53 @@ class Scheduler {
         }
     }
 
+    void calculateAverage() {
+
+        float avgWait = 0;
+        float avgTurnAround = 0;
+        float avgUtlization = 0;
+        float totalCPUTime = 0;
+        float totalTime = 0;
+
+        for (auto process : completedProcess) {
+            avgWait += process.waitTime;
+            avgTurnAround += process.turnAroundTime;
+            totalCPUTime += process.burstTime;
+        }
+        Process lastProcess = completedProcess.back();
+        
+        totalTime = lastProcess.endTime;
+        avgUtlization = totalCPUTime / totalTime;
+        avgWait = avgWait / maxProcess;
+        avgTurnAround = avgTurnAround / maxProcess;
+
+        cout << "                                             Summary                                                        " << endl;
+        cout << "------------------------------------------------------------------------------------------------------------" << endl;
+        cout << "Average Wait Time \t\t | " << avgWait << endl;
+        cout << "Average Turnaround Time \t | " << avgTurnAround << endl;
+        cout << "Average CPU Utilization Time \t | " << avgUtlization << endl;
+        cout << "------------------------------------------------------------------------------------------------------------" << endl;
+
+    }
+
 };
 
 int main () {
 
     Scheduler Algorithm (10);
+    cout << "------------------------------------------------------------------------------------------------------------" << endl;
+    cout << "                                      SHORTEST REMAINING TIME FIRST                                         " << endl;
+    cout << "------------------------------------------------------------------------------------------------------------" << endl;
+    cout << "Input: " << endl;
     Algorithm.printProcess(Algorithm.processes);
+    
     Algorithm.executeSRTF();
     Algorithm.calculations();
+
+    cout << "Output: " << endl;
     Algorithm.printProcess(Algorithm.completedProcess);
+
+    Algorithm.calculateAverage();
 
     return 0;
 }
