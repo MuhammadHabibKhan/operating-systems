@@ -47,6 +47,7 @@ class Process {
 class Scheduler {
     public:
 
+    int clock = 0;
     unsigned int seed = 0;
     int maxProcess;
     Process shortestJob;
@@ -90,47 +91,67 @@ class Scheduler {
 
     void executeSJF () {
 
-        while (!processes.empty()) {
+        while ( !(processes.empty() && sJobs.empty()) ) {
 
-            shortestJob = processes[0];
+            if (!processes.empty()) {
 
-            int itr = 0;
-            auto it = processes.begin();
+                for (auto p = processes.begin(); p != processes.end(); p++) {
 
-            for (auto p = processes.begin(); p != processes.end(); p++) {
+                    Process process = *p;
 
-                Process process = processes[itr];
+                    // if (process.arrivalTime == shortestJob.arrivalTime) {
+                    //     sJobs.push_back(process);
+                    // }
+                    // if (process.arrivalTime < shortestJob.arrivalTime) {
+                    //     sJobs.clear();
+                    //     sJobs.push_back(process);
+                    //     shortestJob = process;
+                    //     it = p;
+                    // }
 
-                if (process.arrivalTime == shortestJob.arrivalTime) {
-                    sJobs.push_back(process);
-                }
-                if (process.arrivalTime < shortestJob.arrivalTime) {
-                    sJobs.clear();
-                    sJobs.push_back(process);
-                    shortestJob = process;
-                    it = p;
-                }
-                itr++;
-            }
-
-            Process tempJob = sJobs[0];
-
-            for (auto p = processes.begin(); p != processes.end(); p++) {
-
-                Process process = *p;
-
-                if (process.burstTime < tempJob.burstTime) {
-                    tempJob = process;
-                    it = p;
+                    if (process.arrivalTime <= clock) {
+                        sJobs.push_back(process);
+                        // cout << process.pid << " pushed" << endl;
+                    }
                 }
             }
 
-            shortestJob = tempJob;
+            if (!sJobs.empty()) {
 
-            completedProcess.push_back(shortestJob);
-            processes.erase(it);
-            sJobs.clear();
+                Process tempJob = sJobs[0];
 
+                for (auto p = sJobs.begin(); p != sJobs.end(); p++) {
+
+                    Process process = *p;
+
+                    if (process.burstTime < tempJob.burstTime) {
+                        tempJob = process;
+                    }
+                }
+                shortestJob = tempJob;
+
+                int s_pid = shortestJob.pid;
+
+                // for (auto p : processes) {
+                //     // cout << p.pid << endl;
+                // }
+
+                for (auto p = processes.begin(); p != processes.end(); p++) {
+
+                    Process pr = *p;
+
+                    if (pr.pid == s_pid) {
+                        // cout << pr.pid << " erased " << endl;
+                        processes.erase(p);
+                        break;
+                    }
+                }
+
+                completedProcess.push_back(shortestJob);
+                sJobs.clear();
+                
+            }
+            clock++;
         }
     }
 
@@ -154,15 +175,53 @@ class Scheduler {
         }
     }
 
+    void calculateAverage() {
+
+        float avgWait = 0;
+        float avgTurnAround = 0;
+        float avgUtlization = 0;
+        float totalCPUTime = 0;
+        float totalTime = 0;
+
+        for (auto process : completedProcess) {
+            avgWait += process.waitTime;
+            avgTurnAround += process.turnAroundTime;
+            totalCPUTime += process.burstTime;
+        }
+        Process lastProcess = completedProcess.back();
+        
+        totalTime = lastProcess.endTime;
+        avgUtlization = totalCPUTime / totalTime;
+        avgWait = avgWait / maxProcess;
+        avgTurnAround = avgTurnAround / maxProcess;
+
+        cout << "                                             Summary                                                        " << endl;
+        cout << "------------------------------------------------------------------------------------------------------------" << endl;
+        cout << "Average Wait Time \t\t | " << avgWait << endl;
+        cout << "Average Turnaround Time \t | " << avgTurnAround << endl;
+        cout << "Average CPU Utilization Time \t | " << avgUtlization << endl;
+        cout << "------------------------------------------------------------------------------------------------------------" << endl;
+
+    }
+
 };
 
 int main () {
 
     Scheduler Algorithm (10);
+    cout << "------------------------------------------------------------------------------------------------------------" << endl;
+    cout << "                                       SHORTEST JOB FIRST                                                   " << endl;
+    cout << "------------------------------------------------------------------------------------------------------------" << endl;
+    cout << "Input: " << endl;
     Algorithm.printProcess(Algorithm.processes);
+    
     Algorithm.executeSJF();
     Algorithm.calculations();
+
+    cout << "Output: " << endl;
     Algorithm.printProcess(Algorithm.completedProcess);
+
+    Algorithm.calculateAverage();
 
     return 0;
 }
