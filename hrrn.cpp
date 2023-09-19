@@ -72,86 +72,90 @@ class Scheduler {
     }
 
     void printProcess (vector <Process> list) {
-        cout << "--------------------------------------------------------------------------------------------------------------------------------" << endl;
-        cout << "PID" << "\tArrival Time" << "\tBurst Time" << "\tResponse Ratio" << "\tStart Time" << "\tWait Time" << "\tTurn Around Time" << "\tEnd Time" << endl;
+        cout << "----------------------------------------------------------------------------------------------------------" << endl;
+        cout << "PID" << "\t Arrival Time" << "\tBurst Time" << "\tStart Time" << "\tWait Time" << "\tTurn Around Time" << "\tEnd Time" << endl;
 
-        cout << "--------------------------------------------------------------------------------------------------------------------------------" << endl;
+        cout << "----------------------------------------------------------------------------------------------------------" << endl;
         int i = 0;
         for (Process p : list) {
-            cout << p.pid << "\t" << p.arrivalTime << "\t\t" << p.burstTime << "\t\t" << p.responseRatio << "\t\t" << p.startTime << "\t\t" << p.waitTime << "\t\t" << p.turnAroundTime << "\t\t\t" << p.endTime << endl;
+            cout << p.pid << "\t\t" << p.arrivalTime << "\t\t" << p.burstTime << "\t\t" << p.startTime << "\t\t" << p.waitTime << "\t\t" << p.turnAroundTime << "\t\t" << p.endTime << endl;
             i++;
         }
         cout << endl;
-        cout << "--------------------------------------------------------------------------------------------------------------------------------" << endl;
+        cout << "----------------------------------------------------------------------------------------------------------" << endl;
     }
 
     void executeHRRN () {
 
-        int i = 0;
+        while ( !(processes.empty() && sJobs.empty()) ) {
 
-        while (!processes.empty()) {
+            if (!processes.empty()) {
 
-            shortestJob = processes[0];
+                for (auto p = processes.begin(); p != processes.end(); p++) {
 
-            int itr = 0;
-            auto it = processes.begin();
+                    Process process = *p;
 
-            for (auto p = processes.begin(); p != processes.end(); p++) {
-
-                Process process = processes[itr];
-
-                if (process.arrivalTime == shortestJob.arrivalTime) {
-                    sJobs.push_back(process);
+                    if (process.arrivalTime <= clock) {
+                        sJobs.push_back(process);
+                    }
                 }
-
-                if (process.arrivalTime < shortestJob.arrivalTime) {
-                    sJobs.clear();
-                    sJobs.push_back(process);
-                    shortestJob = process;
-                    it = p;
-                }
-                itr++;
-            }
-
-            if (i == 0) {
-                clock = shortestJob.arrivalTime;
             }
 
             for (auto &p: sJobs) {
-                if (p.arrivalTime < clock) {
+
+                // cout << "pid: " << p.pid << " clock: " << clock << " arrival: " << p.arrivalTime << endl;
+                if (p.arrivalTime <= clock) {
                     p.waitTime = clock - p.arrivalTime;
                 }
-                else if (p.arrivalTime > clock) {
-                    clock = p.arrivalTime;
-                }
-
-                p.responseRatio = (p.waitTime + p.burstTime) / p.burstTime;
+                // cout << "W: " << p.waitTime << " B: " << p.burstTime << endl;
+                 p.responseRatio = (p.waitTime + p.burstTime) / p.burstTime;
+                //  cout << "RR: " << p.responseRatio << endl;
             }
 
-            Process tempJob = sJobs[0];
+            if (!sJobs.empty()) {
 
-            for (auto p = processes.begin(); p != processes.end(); p++) {
+                Process tempJob = sJobs[0];
 
-                Process process = *p;
+                cout << "----------------------------------------------------" << endl;
+                cout << "Ready Queue at time " << clock << " : " << endl;
 
-                if (process.responseRatio > tempJob.responseRatio) {
-                    tempJob = process;
-                    it = p;
+                for (auto p = sJobs.begin(); p != sJobs.end(); p++) {
+
+                    Process process = *p;
+
+                    cout << "PID: " << process.pid << " | " << "RR: " << process.responseRatio << " |";
+                    cout << endl;
+
+                    if (process.responseRatio > tempJob.responseRatio) {
+                        tempJob = process;
+                    }
                 }
+                cout << "----------------------------------------------------" << endl;
+                cout << "PID with highest reponse ratio selected: " << tempJob.pid << endl;
+                cout << "----------------------------------------------------" << endl;
+
+                shortestJob = tempJob;
+
+                int s_pid = shortestJob.pid;
+
+                for (auto p = processes.begin(); p != processes.end(); p++) {
+
+                    Process pr = *p;
+
+                    if (pr.pid == s_pid) {
+                        // cout << pr.pid << " erased " << endl;
+                        processes.erase(p);
+                        break;
+                    }
+                }
+
+                completedProcess.push_back(shortestJob);
+                sJobs.clear();
+                clock = clock + shortestJob.burstTime;
+                continue;
             }
-
-            shortestJob = tempJob;
-
-            // cout << "wait: " << shortestJob.waitTime;
-            // cout << " | clock: " << clock << endl;
-
-            clock = clock + shortestJob.burstTime;
-
-            completedProcess.push_back(shortestJob);
-            processes.erase(it);
-            sJobs.clear();
-
-            i++;
+            cout << "++" << endl;
+            clock++;
         }
     }
 
@@ -175,18 +179,54 @@ class Scheduler {
         }
     }
 
+    void calculateAverage() {
+
+        float avgWait = 0;
+        float avgTurnAround = 0;
+        float avgUtlization = 0;
+        float totalCPUTime = 0;
+        float totalTime = 0;
+
+        for (auto process : completedProcess) {
+            avgWait += process.waitTime;
+            avgTurnAround += process.turnAroundTime;
+            totalCPUTime += process.burstTime;
+        }
+        Process lastProcess = completedProcess.back();
+        
+        totalTime = lastProcess.endTime;
+        avgUtlization = totalCPUTime / totalTime;
+        avgWait = avgWait / maxProcess;
+        avgTurnAround = avgTurnAround / maxProcess;
+
+        cout << "                                             Summary                                                      " << endl;
+        cout << "----------------------------------------------------------------------------------------------------------" << endl;
+        cout << "Average Wait Time \t\t | " << avgWait << endl;
+        cout << "Average Turnaround Time \t | " << avgTurnAround << endl;
+        cout << "Average CPU Utilization Time \t | " << avgUtlization << endl;
+        cout << "----------------------------------------------------------------------------------------------------------" << endl;
+
+    }
+
 };
 
 int main () {
 
     Scheduler Algorithm (10);
-    cout << "--------------------------------------------------------------------------------------------------------------------------------" << endl;
+    cout << "----------------------------------------------------------------------------------------------------------" << endl;
+    cout << "                                            HIGHEST RESPONSE RATIO NEXT                                   " << endl;
+    cout << "----------------------------------------------------------------------------------------------------------" << endl;
     cout << "Input: " << endl;
+    
     Algorithm.printProcess(Algorithm.processes);
+    
     Algorithm.executeHRRN();
     Algorithm.calculations();
+    
     cout << "Output: " << endl;
     Algorithm.printProcess(Algorithm.completedProcess);
+
+    Algorithm.calculateAverage();
 
     return 0;
 }
